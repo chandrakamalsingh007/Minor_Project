@@ -1,66 +1,109 @@
 #include <WiFi.h>
+#include "esp_camera.h"
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
+#include<camera_pins.h>
+
+//select camera model
+#define CAMERA_MODEL_AI_THINKER // Has PSRAM
 
 // WiFi credentials
-const char* ssid = "yourSSID";
-const char* password = "yourPassword";
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
-// Twilio credentials
-String twilioSID = "yourTwilioSID";
-String twilioAuthToken = "yourTwilioAuthToken";
-String twilioPhoneNumber = "yourTwilioPhoneNumber"; // From Twilio
-String ownerPhone = "+1234567890"; // Owner's phone number
+// Python server URL
+const char* serverUrl = "http://YOUR_PYTHON_SERVER_IP:5000/recognize";
 
 
-String generatedOTP = "";
 
 void setup() {
   Serial.begin(115200);
-  WiFi.begin(ssid, password);
 
-  // Wait for Wi-Fi connection
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.println("Connecting to WiFi...");
   }
-  Serial.println("WiFi connected");
+  Serial.println("Connected to WiFi");
 
-  generateOTP();      // Generate OTP
-  sendOTP();          // Send OTP via SMS
+  // Initialize Camera
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer = LEDC_TIMER_0;
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+  config.pin_sscb_sda = SIOD_GPIO_NUM;
+  config.pin_sscb_scl = SIOC_GPIO_NUM;
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+  
+  // Select lower framesize for better performance
+  config.frame_size = FRAMESIZE_QVGA; 
+  config.jpeg_quality = 12; 
+  config.fb_count = 1;
+
+  // Initialize camera
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+    Serial.printf("Camera initialization failed: 0x%x", err);
+    return;
+  }
+  Serial.println("ESP32-CAM initialized");
 }
 
 void loop() {
-  // You can add other functions here if needed
-}
+  // Wait for START signal from Arduino
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    if (command == "START") {
+      // Capture image
+      camera_fb_t* fb = esp_camera_fb_get();
+      if (!fb) {
+        Serial.println("Camera capture failed");
+        return;
+      }
 
-// Generate a random OTP
-void generateOTP() {
-  generatedOTP = String(random(100000, 999999)); // Generate a 6-digit OTP
-  Serial.println("Generated OTP: " + generatedOTP);
-}
+      // Send image to Python server
+      HTTPClient http;
+      http.begin(serverUrl);
+      http.addHeader("Content-Type", "image/jpeg");
+      int httpResponseCode = http.POST(fb->buf, fb->len);
 
-// Send OTP via Twilio SMS API
-void sendOTP() {
-  HTTPClient http;
-  WiFiClientSecure client;
-  client.setInsecure();  // Disable SSL verification for simplicity (in production, use certificate)
+      if (httpResponseCode == 200) {
+        String response = http.getString();
+        if (response.startsWith("NAME:")) {
+          Serial.println(response); // Send recognized name to Arduino
+        } else if (response == "INTRUDER") {
+          Serial.println("INTRUDER"); // Send intruder alert to Arduino
+          sendIntruderAlert(fb->buf, fb->len);
+        }
+      } else {
+        Serial.println("Error sending image to server");
+      }
 
-  String url = "https://api.twilio.com/2010-04-01/Accounts/" + twilioSID + "/Messages.json";
-  String message = "OTP: " + generatedOTP;
-
-  http.begin(client, url);
-  http.addHeader("Authorization", "Basic " + base64::encode(twilioSID + ":" + twilioAuthToken));
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-  String payload = "To=" + ownerPhone + "&From=" + twilioPhoneNumber + "&Body=" + message;
-
-  int httpResponseCode = http.POST(payload);
-  if (httpResponseCode == 200) {
-    Serial.println("OTP Sent successfully.");
-  } else {
-    Serial.println("Error sending OTP: " + String(httpResponseCode));
+      http.end();
+      esp_camera_fb_return(fb); // Free memory
+    }
   }
+}
+
+void sendIntruderAlert(const uint8_t* image, size_t len) {
+  // Send image to Telegram or WhatsApp (Handled by Python server)
+  HTTPClient http;
+  http.begin("http://YOUR_PYTHON_SERVER_IP:5000/alert");
+  http.addHeader("Content-Type", "image/jpeg");
+  http.POST(image, len);
   http.end();
 }
-
