@@ -1,23 +1,44 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <ArduinoQueue.h>
+#include <esp_task_wdt.h>
 
-// Camera model and configuration
+// ===========================
+// Configuration
+// ===========================
 #define CAMERA_MODEL_AI_THINKER
 #include "camera_pins.h"
 
-// ===========================
-// WiFi Configuration
-// ===========================
+// Network Configuration
 const char *ssid = "**********";
 const char *password = "**********";
-const char* serverURL = "http://YOUR_SERVER_IP:5000/verify";
-const char* statusURL = "http://YOUR_SERVER_IP:5000/status";
+const char* serverURL = "https://YOUR_SERVER:5000/verify";
+const char* statusURL = "https://YOUR_SERVER:5000/status";
+
+// System Parameters
+const int MAX_RETRIES = 3;
+const int CAMERA_TIMEOUT = 5000;
+const unsigned long STATUS_CHECK_INTERVAL = 60000;
+const size_t MAX_QUEUE_MEMORY = 2048;  // 2KB
+const size_t MAX_FRAME_SIZE = 150000;   // 150KB
 
 // ===========================
-// Camera Configuration
+// Global Variables
 // ===========================
-void setupCamera() {
+ArduinoQueue<String> alertQueue(5);
+size_t currentQueueMemory = 0;
+bool systemActive = false;
+unsigned long lastStatusCheck = 0;
+bool faceRecognitionActive = false;
+unsigned long frameCounter = 0;
+WiFiClientSecure client;
+
+// ===========================
+// Camera Initialization
+// ===========================
+bool initializeCamera() {
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
@@ -38,112 +59,148 @@ void setupCamera() {
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
-  config.frame_size = FRAMESIZE_SVGA;
+  config.frame_size = FRAMESIZE_VGA;
   config.pixel_format = PIXFORMAT_JPEG;
   config.grab_mode = CAMERA_GRAB_LATEST;
   config.fb_location = CAMERA_FB_IN_PSRAM;
   config.jpeg_quality = 12;
   config.fb_count = 2;
 
-  // Initialize camera
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
-    Serial.printf("Camera init failed: 0x%x", err);
-    ESP.restart();
+    Serial.printf("CAM_ERROR:0x%x\n", err);
+    return false;
   }
-
-  // Adjust sensor settings
+  
   sensor_t *s = esp_camera_sensor_get();
-  s->set_framesize(s, FRAMESIZE_SVGA);  // 800x600
+  s->set_framesize(s, FRAMESIZE_VGA);
+  return true;
 }
 
+// ===========================
+// WiFi Management
+// ===========================
+bool connectWiFi(int maxRetries = 3) {
+  if(WiFi.status() == WL_CONNECTED) return true;
+  
+  int retries = 0;
+  while(retries < maxRetries) {
+    WiFi.begin(ssid, password);
+    WiFi.setSleep(true);
+    
+    Serial.print("WIFI_CONNECTING:");
+    unsigned long startTime = millis();
+    while (WiFi.status() != WL_CONNECTED && 
+          (millis() - startTime < 20000)) {
+      delay(500);
+      Serial.print(".");
+    }
+    
+    if(WiFi.status() == WL_CONNECTED) {
+      Serial.println("\nWIFI_CONNECTED");
+      return true;
+    }
+    retries++;
+    Serial.printf("\nWIFI_FAILED:%d/%d\n", retries, maxRetries);
+  }
+  return false;
+}
+
+// ===========================
+// Main Setup
+// ===========================
 void setup() {
   Serial.begin(115200);
-  Serial.setTimeout(500);
-  
-  setupCamera();
-  
-  // Connect to WiFi
-  WiFi.begin(ssid, password);
-  WiFi.setSleep(false);
-  
-  Serial.print("Connecting to WiFi");
-  unsigned long startTime = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 20000) {
-    delay(500);
-    Serial.print(".");
-  }
-  
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("\nFailed to connect!");
+  Serial.setTimeout(100);
+  esp_task_wdt_init(10, true);  // 10-second watchdog
+
+  if(!initializeCamera()) {
+    Serial.println("RESTARTING");
+    delay(1000);
     ESP.restart();
   }
-  
-  Serial.println("\nWiFi connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+
+  WiFi.persistent(false);
+  WiFi.mode(WIFI_STA);
+  Serial.println("SYSTEM_READY");
 }
 
+// ===========================
+// Main Loop
+// ===========================
 void loop() {
-  // Check for system alerts from Arduino
-  if (Serial.available()) {
-    String alert = Serial.readStringUntil('\n');
-    if (alert == "LOW_BATTERY") {
-      sendStatusAlert("Low Battery Warning!");
+  esp_task_wdt_reset();
+  
+  if(Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    
+    if(command == "START_FACE_RECOG") {
+      systemActive = true;
+      faceRecognitionActive = true;
     }
   }
 
-  // Main recognition cycle
-  if (WiFi.status() == WL_CONNECTED) {
-    captureAndProcessImage();
-  } else {
-    Serial.println("WiFi disconnected!");
-    delay(1000);
+  if(systemActive && faceRecognitionActive) {
+    if(performFaceRecognition()) {
+      systemActive = false;
+    }
+    faceRecognitionActive = false;
+  }
+
+  if(millis() - lastStatusCheck > STATUS_CHECK_INTERVAL) {
+    lastStatusCheck = millis();
+  }
+
+  if(!systemActive) {
+    delay(100);
   }
 }
 
-void captureAndProcessImage() {
-  camera_fb_t *fb = NULL;
-  fb = esp_camera_fb_get();
-  if (!fb) {
-    Serial.println("Camera capture failed");
-    return;
+// ===========================
+// Face Recognition Flow
+// ===========================
+bool performFaceRecognition() {
+  Serial.println("SCANNING_FACE");
+  frameCounter++;
+  
+  camera_fb_t *fb = esp_camera_fb_get();
+  if(!fb) {
+    Serial.println("CAM_CAPTURE_FAIL");
+    return false;
   }
 
-  HTTPClient http;
-  http.begin(serverURL);
-  http.addHeader("Content-Type", "image/jpeg");
-  
-  int httpCode = http.POST(fb->buf, fb->len);
-  if (httpCode > 0) {
-    String response = http.getString();
-    if (response.startsWith("ACCESS_GRANTED")) {
-      Serial.println("GRANTED:" + response.substring(15));
-    } 
-    else if (response.startsWith("OTP:")) {
-      Serial.println(response);
+  if(fb->len > MAX_FRAME_SIZE) {
+    Serial.println("FRAME_SIZE_ERROR");
+    esp_camera_fb_return(fb);
+    return false;
+  }
+
+  bool result = false;
+  if(connectWiFi()) {
+    HTTPClient http;
+    http.begin(client, serverURL);
+    http.addHeader("Content-Type", "image/jpeg");
+
+    int httpCode = http.POST(fb->buf, fb->len);
+    if(httpCode > 0) {
+      String response = http.getString();
+      if(response.startsWith("ACCESS_GRANTED")) {
+        Serial.println("GRANTED");
+        result = true;
+      }
+      else {
+        Serial.print("RECOG_FAIL:");
+        Serial.println(response);
+      }
+    } else {
+      Serial.printf("SERVER_ERROR:%d\n", httpCode);
     }
-    else {
-      Serial.println("Unexpected response: " + response);
-    }
+    http.end();
   } else {
-    Serial.printf("HTTP error: %s\n", http.errorToString(httpCode).c_str());
+    Serial.println("WIFI_UNAVAILABLE");
   }
 
   esp_camera_fb_return(fb);
-  http.end();
-  delay(3000);  // Reduced delay for faster response
-}
-
-void sendStatusAlert(String message) {
-  HTTPClient http;
-  http.begin(statusURL);
-  http.addHeader("Content-Type", "text/plain");
-  int httpCode = http.POST(message);
-  
-  if (httpCode <= 0) {
-    Serial.printf("Status alert failed: %s\n", http.errorToString(httpCode).c_str());
-  }
-  
-  http.end();
+  return result;
 }
