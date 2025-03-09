@@ -18,6 +18,9 @@
 const char *ssid = "Naayaa";
 const char *password = "1234567890";
 
+//server details
+const char* serverUrl = "http://192.168.43.182:5000/api/data/";
+
 
 void startCameraServer();
 void setupLedFlash(int pin);
@@ -137,18 +140,21 @@ void setup() {
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    String serverUrl = "http://192.168.43.115:8000/recognize/"; // Replace with actual IP
+    // start HTTP connection
     http.begin(serverUrl);
-
+    // send HTTP GET request
     int httpResponseCode = http.GET();
+
     Serial.print("HTTP Response Code: ");
     Serial.println(httpResponseCode);
 
     if (httpResponseCode == HTTP_CODE_OK) {
       String payload = http.getString();
-      Serial.println("Raw Response: " + payload);
+      Serial.println("Received payload:");
+      Serial.println(payload);
 
-      StaticJsonDocument<512> doc; // Increased buffer size
+     // Parse JSON
+      DynamicJsonDocument doc(1024);
       DeserializationError error = deserializeJson(doc, payload);
       if (error) {
         Serial.print("JSON Parsing Failed: ");
@@ -156,26 +162,36 @@ void loop() {
         return;
       }
 
-      // Extract data (ensure keys match your JSON)
-      const char* status = doc["status"];
-      int signal = doc["signal"];
-      const char* message = doc["message"];
+      if (doc.containsKey("status")) {
+        const char* status = doc["status"];
+        Serial.print("Status: ");
+        Serial.println(status);
+      }
+      
+      if (doc.containsKey("message")) {
+        const char* message = doc["message"];
+        Serial.print("Message: ");
+        Serial.println(message);
+      }
 
-      Serial.println("Status: " + String(status));
-      Serial.println("Signal: " + String(signal));
-      Serial.println("Message: " + String(message));
+      if (doc.containsKey("signal")) {
+         int signal = doc["signal"];
+        Serial.print("Signal: ");
+        Serial.println(signal);
+      }
 
-      // Check if "otp" exists
       if (doc.containsKey("otp")) {
-        const char* otp = doc["otp"];
-        Serial.println("OTP: " + String(otp));
+        const char* message = doc["otp"];
+        Serial.print("otp: ");
+        Serial.println(otp);
       }
     } else {
-      Serial.println("HTTP Request Failed");
+      Serial.printf("HTTP request failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
     http.end();
   } else {
     Serial.println("WiFi Disconnected");
   }
+  // Wait before next request
   delay(10000);
 }
