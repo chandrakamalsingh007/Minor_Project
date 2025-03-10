@@ -18,7 +18,7 @@
 const char *ssid = "Naayaa";
 const char *password = "1234567890";
 
-//server details
+// //server details
 const char* serverUrl = "http://192.168.43.182:5000/api/data/";
 
 
@@ -140,15 +140,15 @@ void setup() {
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
+
     // start HTTP connection
     http.begin(serverUrl);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
     // send HTTP GET request
-    int httpResponseCode = http.GET();
+    int httpCode = http.GET();
 
-    Serial.print("HTTP Response Code: ");
-    Serial.println(httpResponseCode);
-
-    if (httpResponseCode == HTTP_CODE_OK) {
+    if (httpCode == HTTP_CODE_OK) {
       String payload = http.getString();
       Serial.println("Received payload:");
       Serial.println(payload);
@@ -156,6 +156,7 @@ void loop() {
      // Parse JSON
       DynamicJsonDocument doc(1024);
       DeserializationError error = deserializeJson(doc, payload);
+
       if (error) {
         Serial.print("JSON Parsing Failed: ");
         Serial.println(error.c_str());
@@ -175,13 +176,13 @@ void loop() {
       }
 
       if (doc.containsKey("signal")) {
-         int signal = doc["signal"];
+        int signal = doc["signal"];
         Serial.print("Signal: ");
         Serial.println(signal);
       }
 
       if (doc.containsKey("otp")) {
-        const char* message = doc["otp"];
+        const char* otp = doc["otp"];
         Serial.print("otp: ");
         Serial.println(otp);
       }
@@ -192,6 +193,6 @@ void loop() {
   } else {
     Serial.println("WiFi Disconnected");
   }
-  // Wait before next request
+  // // Wait before next request
   delay(10000);
 }
