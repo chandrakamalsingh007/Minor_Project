@@ -19,7 +19,7 @@ const char *ssid = "Naayaa";
 const char *password = "1234567890";
 
 // //server details
-const char* serverUrl = "http://192.168.43.182:5000/api/data/";
+const char* serverUrl = "http://192.168.43.115:5000/recognize/";
 
 
 void startCameraServer();
