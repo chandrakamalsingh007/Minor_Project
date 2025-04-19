@@ -194,5 +194,5 @@ void loop() {
     Serial.println("WiFi Disconnected");
   }
   // // Wait before next request
-  delay(10000);
+  delay(50000);
 }
