@@ -11,6 +11,23 @@
 
 ---
 
+---
+## 👤 Face Recognition
+![Face Recognition](images/facial_recognition_model.png)
+
+## 🛡️ Anti-Spoofing Detection
+![Anti Spoofing](images/anti-spoof%20model.png)
+
+## 🔐 Project Implementation
+![Telegram OTP](images/flowchart.png)
+
+## 🧠 System Architecture
+![System Architecture](images/statediagram.png)
+
+## 🔌 Hardware Circuit Diagram
+![Circuit Diagram](images/Hardware_setup.png)
+---
+
 # 🚀 Key Features
 
 | Feature | Description |
@@ -63,7 +80,7 @@
 └──────────────────────────────────────────────────────┘
 ````
 
-📷 *See `assets/system_architecture.png` for detailed diagram.*
+
 
 ---
 
@@ -213,46 +230,17 @@ Minor_Project--Face-Door-Lock-OTP/
 ├── README.md
 ├── LICENSE
 │
-├── backend/
-│   ├── manage.py
-│   │
-│   ├── doorlock/
-│   │   ├── models.py
-│   │   ├── views.py
-│   │   ├── urls.py
-│   │   ├── serializers.py
-│   │   └── admin.py
-│   │
-│   ├── anti_spoof/
-│   │   ├── model.pth
-│   │   ├── preprocess.py
-│   │   └── predict.py
-│   │
-│   └── face_rec/
-│       ├── encodings.pickle
-│       └── recognizer.py
+├── Backend/
 │
-├── hardware/
-│   ├── esp32_cam.ino
-│   ├── arduino_lock.ino
-│   └── circuit_diagram.png
+├── Hardware/
 │
-├── ui/
-│   └── templates/
-│       ├── register.html
-│       └── dashboard.html
+├── Images/
 │
-├── assets/
-│   ├── face_recognition.png
-│   ├── anti_spoof.png
-│   ├── telegram_otp.png
-│   ├── demo_video.mp4
-│   └── system_architecture.png
+├── Demo/
 │
-└── tests/
-    ├── test_anti_spoof.py
-    ├── test_face_rec.py
-    └── test_otp.py
+├─Presentation/
+│
+├── Report/
 ```
 
 ---
@@ -275,19 +263,19 @@ Run unit tests:
 
 ```bash
 cd backend
-python manage.py test
+python manage.py
 ```
 
 ---
 
 # 👥 Team
 
-| Name                | Role                       | GitHub        |
-| ------------------- | -------------------------- | ------------- |
-| Aagaman K.C.        | Backend & Anti-Spoof Model | @aagaman      |
-| Ajay Panta          | Face Recognition & DLIB    | @ajaypanta    |
-| Chandra Kamal Singh | Hardware Integration       | @chandrakamal |
-| Gaurav Bhujel       | UI & Telegram Integration  | @gauravbhujel |
+| Name                | Role                       | GitHub                 |
+| ------------------- | -------------------------- | ---------------------- |
+| Aagaman K.C.        | Backend & Anti-Spoof Model | @Aagaman1229           |
+| Ajay Panta          | Data Collection            | @Ajaypanta10           |
+| Chandra Kamal Singh | Hardware Integration       | @chandrakamalsingh007  |
+| Gaurav Bhujel       | UI & Telegram Integration  | @gauravbhujel07        |
 
 ---
 
@@ -308,9 +296,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 # 📧 Contact
 
-* **GitHub:** [@yourusername](https://github.com/yourusername)
-* **Email:** [your.email@example.com](mailto:your.email@example.com)
-* **LinkedIn:** Your LinkedIn Profile
+* **GitHub:** [@yourusername](https://github.com/chandrakamalsingh007)
+* **Email:** [your.email@example.com](mailto:chandrakamalsingh.me@gmail.com)
+* **LinkedIn:** [Chandra Kamal Singh](https://www.linkedin.com/in/chandra-kamal-singh-94602b375/)
 
 ---
 
