@@ -104,8 +104,8 @@
 ## 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/Face-Door-Lock-OTP.git
-cd Face-Door-Lock-OTP
+git clone https://github.com/yourusername/Minor_Project--Face-Door-Lock-OTP.git
+cd Minor_Project--Face-Door-Lock-OTP
 ```
 
 ---
@@ -208,7 +208,7 @@ ESP32-CAM → Capture Face → Verify Face
 # 📁 Project Structure
 
 ```text
-Face-Door-Lock-OTP/
+Minor_Project--Face-Door-Lock-OTP/
 │
 ├── README.md
 ├── LICENSE
