@@ -15,7 +15,7 @@
 // ===========================
 // Enter your WiFi credentials
 // ===========================
-const char *ssid = "Naayaa";
+const char *ssid = "Naaayaa";
 const char *password = "1234567890";
 
 // //server details
