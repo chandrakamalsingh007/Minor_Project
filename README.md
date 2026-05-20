@@ -13,19 +13,19 @@
 
 ---
 ## 👤 Face Recognition
-![Face Recognition](images/facial_recognition_model.png)
+![Face Recognition](Images/facial_recognition_model.png)
 
 ## 🛡️ Anti-Spoofing Detection
-![Anti Spoofing](images/anti-spoof%20model.png)
+![Anti Spoofing](Images/anti-spoof%20model.png)
 
 ## 🔐 Project Implementation
-![Telegram OTP](images/flowchart.png)
+![Telegram OTP](Images/flowchart.png)
 
 ## 🧠 System Architecture
-![System Architecture](images/statediagram.png)
+![System Architecture](Images/statediagram.png)
 
 ## 🔌 Hardware Circuit Diagram
-![Circuit Diagram](images/Hardware_setup.png)
+![Circuit Diagram](Images/Hardware_setup.png)
 ---
 
 # 🚀 Key Features
