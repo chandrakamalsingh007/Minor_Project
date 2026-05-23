@@ -1,5 +1,12 @@
 # Minor_Project : Face-recognition based door locking system with OTP verification (ESP32 + Django)
 
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org)
+[![Django](https://img.shields.io/badge/Django-4.0%2B-green)](https://djangoproject.com)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.8.0-orange)](https://opencv.org)
+[![Dlib](https://img.shields.io/badge/Dlib-19.24-red)](http://dlib.net)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
+
 > A **multi-layered smart door security system** combining **anti-spoofing face recognition** (Fourier Transform + CNN), **two-factor authentication via OTP** (Telegram Bot), and **cloud-controlled hardware** using ESP32-CAM and Django backend.
 
 ---
