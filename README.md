@@ -303,8 +303,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 # 📧 Contact
 
-* **GitHub:** [@yourusername](https://github.com/chandrakamalsingh007)
-* **Email:** [your.email@example.com](mailto:chandrakamalsingh.me@gmail.com)
+* **GitHub:** [@chandrakamalsingh007](https://github.com/chandrakamalsingh007)
+* **Email:** [chandrakamalsingh.me@gmail.com](mailto:chandrakamalsingh.me@gmail.com)
 * **LinkedIn:** [Chandra Kamal Singh](https://www.linkedin.com/in/chandra-kamal-singh-94602b375/)
 
 ---
